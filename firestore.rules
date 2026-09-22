@@ -1,0 +1,60 @@
+rules_version = '2';
+
+// ============================================================
+// Firestore sigurnosna pravila za aplikaciju "Moj Trening"
+// ------------------------------------------------------------
+// Zalijepi ovo u Firebase Console -> Firestore Database -> Rules
+// ============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function myRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isTrener() {
+      return isSignedIn() && myRole() == 'trener';
+    }
+
+    function isKlijent() {
+      return isSignedIn() && myRole() == 'klijent';
+    }
+
+    // Klijent smije updateati SAMO polje 'weight' - ništa drugo
+    function onlyWeightChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['weight']);
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      // Korisnik smije stvoriti/mijenjati samo svoj vlastiti profil
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn() && request.auth.uid == userId
+                    // ne dozvoli da sam sebi promijeni ulogu nakon registracije
+                    && request.resource.data.role == resource.data.role;
+      allow delete: if false;
+    }
+
+    match /trainings/{trainingId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isTrener();
+
+      match /coreExercises/{exId} {
+        allow read: if isSignedIn();
+        allow create, delete: if isTrener();
+        allow update: if isTrener();
+      }
+
+      match /mainExercises/{exId} {
+        allow read: if isSignedIn();
+        allow create, delete: if isTrener();
+        allow update: if isTrener() || (isKlijent() && onlyWeightChanged());
+      }
+    }
+  }
+}

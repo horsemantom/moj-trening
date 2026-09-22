@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<title>Moj Trening</title>
+<meta name="theme-color" content="#16a34a" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="centered-screen">
+  <div class="card">
+    <div class="logo-wrap">
+      <div class="emoji">🏋️</div>
+    </div>
+
+    <div id="configWarning" class="setup-banner" style="display:none;">
+      Firebase konfiguracija još nije postavljena. Otvori <strong>firebase-config.js</strong> i upiši svoje podatke
+      (upute su u UPUTE.md) prije nego što se možeš prijaviti.
+    </div>
+
+    <div id="loginView">
+      <h2>Prijava</h2>
+      <label for="loginEmail">Email</label>
+      <input type="email" id="loginEmail" autocomplete="email" placeholder="ime@primjer.com" />
+      <label for="loginPassword">Lozinka</label>
+      <input type="password" id="loginPassword" autocomplete="current-password" placeholder="••••••••" />
+      <div class="error-msg" id="loginError"></div>
+      <button class="btn" id="loginBtn">Prijavi se</button>
+      <div class="switch-link">Nemaš račun? <a href="#" id="showRegister">Registriraj se</a></div>
+    </div>
+
+    <div id="registerView" style="display:none;">
+      <h2>Registracija</h2>
+      <label>Uloga</label>
+      <div class="role-select">
+        <div class="role-option active" data-role="klijent">🙋 Klijent</div>
+        <div class="role-option" data-role="trener">🧑‍🏫 Trener</div>
+      </div>
+
+      <div id="trenerCodeWrap" style="display:none;">
+        <label for="trenerCode">Pristupni kod za trenera</label>
+        <input type="text" id="trenerCode" placeholder="Dobiven od developera aplikacije" />
+      </div>
+
+      <label for="regName">Ime</label>
+      <input type="text" id="regName" placeholder="Tvoje ime" />
+      <label for="regEmail">Email</label>
+      <input type="email" id="regEmail" autocomplete="email" placeholder="ime@primjer.com" />
+      <label for="regPassword">Lozinka</label>
+      <input type="password" id="regPassword" autocomplete="new-password" placeholder="Min. 6 znakova" />
+      <div class="error-msg" id="registerError"></div>
+      <button class="btn" id="registerBtn">Registriraj se</button>
+      <div class="switch-link">Već imaš račun? <a href="#" id="showLogin">Prijavi se</a></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+  let fbReady = false;
+  try {
+    if (!firebaseConfig.apiKey.startsWith("UPIŠI")) {
+      firebase.initializeApp(firebaseConfig);
+      fbReady = true;
+    }
+  } catch (e) {
+    console.error(e);
+  }
+
+  if (!fbReady) {
+    document.getElementById("configWarning").style.display = "block";
+  }
+
+  const auth = fbReady ? firebase.auth() : null;
+  const db = fbReady ? firebase.firestore() : null;
+
+  // Ako je korisnik već prijavljen (npr. vraća se na ovu stranicu s postojećom
+  // sesijom), odmah ga vodi u aplikaciju. Ovo se provjerava SAMO jednom, pri
+  // prvom pozivu (početno stanje pri učitavanju stranice) - kasnije promjene
+  // stanja prijave (npr. tijekom registracije) NE smiju ovdje preusmjeravati,
+  // jer bi to prekinulo spremanje profila u Firestore prije nego što završi
+  // (utrka između ovog listenera i registerBtn/loginBtn handlera ispod).
+  let initialAuthCheckDone = false;
+  if (fbReady) {
+    auth.onAuthStateChanged((user) => {
+      if (!initialAuthCheckDone) {
+        initialAuthCheckDone = true;
+        if (user) {
+          window.location.href = "app.html";
+        }
+      }
+    });
+  }
+
+  const loginView = document.getElementById("loginView");
+  const registerView = document.getElementById("registerView");
+  document.getElementById("showRegister").addEventListener("click", (e) => {
+    e.preventDefault();
+    loginView.style.display = "none";
+    registerView.style.display = "block";
+  });
+  document.getElementById("showLogin").addEventListener("click", (e) => {
+    e.preventDefault();
+    registerView.style.display = "none";
+    loginView.style.display = "block";
+  });
+
+  let selectedRole = "klijent";
+  document.querySelectorAll(".role-option").forEach((el) => {
+    el.addEventListener("click", () => {
+      document.querySelectorAll(".role-option").forEach((o) => o.classList.remove("active"));
+      el.classList.add("active");
+      selectedRole = el.dataset.role;
+      document.getElementById("trenerCodeWrap").style.display = selectedRole === "trener" ? "block" : "none";
+    });
+  });
+
+  document.getElementById("loginBtn").addEventListener("click", async () => {
+    const errorEl = document.getElementById("loginError");
+    errorEl.textContent = "";
+    if (!fbReady) { errorEl.textContent = "Firebase nije konfiguriran."; return; }
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value;
+    if (!email || !password) {
+      errorEl.textContent = "Upiši email i lozinku.";
+      return;
+    }
+    try {
+      await auth.signInWithEmailAndPassword(email, password);
+      window.location.href = "app.html";
+    } catch (e) {
+      errorEl.textContent = prijevodGreske(e);
+    }
+  });
+
+  document.getElementById("registerBtn").addEventListener("click", async () => {
+    const errorEl = document.getElementById("registerError");
+    errorEl.textContent = "";
+    if (!fbReady) { errorEl.textContent = "Firebase nije konfiguriran."; return; }
+
+    const name = document.getElementById("regName").value.trim();
+    const email = document.getElementById("regEmail").value.trim();
+    const password = document.getElementById("regPassword").value;
+
+    if (!name || !email || !password) {
+      errorEl.textContent = "Ispuni sva polja.";
+      return;
+    }
+    if (password.length < 6) {
+      errorEl.textContent = "Lozinka mora imati barem 6 znakova.";
+      return;
+    }
+    if (selectedRole === "trener") {
+      const code = document.getElementById("trenerCode").value.trim();
+      if (code !== TRENER_PRISTUPNI_KOD) {
+        errorEl.textContent = "Pogrešan pristupni kod za trenera.";
+        return;
+      }
+    }
+
+    try {
+      const cred = await auth.createUserWithEmailAndPassword(email, password);
+      await cred.user.updateProfile({ displayName: name });
+      await db.collection("users").doc(cred.user.uid).set({
+        name: name,
+        email: email,
+        role: selectedRole,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      window.location.href = "app.html";
+    } catch (e) {
+      errorEl.textContent = prijevodGreske(e);
+    }
+  });
+
+  function prijevodGreske(e) {
+    const code = e.code || "";
+    if (code.includes("email-already-in-use")) return "Ovaj email je već registriran.";
+    if (code.includes("invalid-email")) return "Neispravan email.";
+    if (code.includes("weak-password")) return "Lozinka je preslaba (min 6 znakova).";
+    if (code.includes("user-not-found") || code.includes("wrong-password") || code.includes("invalid-credential")) return "Pogrešan email ili lozinka.";
+    if (code.includes("network-request-failed")) return "Provjeri internetsku vezu.";
+    return "Došlo je do greške. Pokušaj ponovno.";
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<title>Moj Trening</title>
+<meta name="theme-color" content="#16a34a" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div id="loadingScreen" class="loading-wrap"><div class="spinner"></div></div>
+
+<div id="appRoot" style="display:none;">
+
+  <header class="app-header">
+    <h1>🏋️ Moj Trening <span class="role-badge" id="roleBadge"></span></h1>
+    <button class="icon-btn" id="logoutBtn" title="Odjava">⏻</button>
+  </header>
+
+  <div class="container">
+
+    <div id="treninziView">
+      <div id="trainingsList"></div>
+      <div id="emptyState" class="empty-state" style="display:none;">
+        <span class="emoji">📋</span>
+        <div id="emptyStateText">Još nema unesenih treninga.</div>
+      </div>
+    </div>
+
+    <div id="profilView" style="display:none;">
+      <div class="training-card">
+        <div class="training-body" style="padding-top:16px;">
+          <p><strong id="profileName"></strong></p>
+          <p class="muted" id="profileEmail"></p>
+          <p class="muted">Uloga: <span id="profileRole"></span></p>
+
+          <div id="trenerTools" style="display:none;">
+            <hr style="border-color:var(--border); margin:16px 0;" />
+            <p class="muted">Alati za trenera</p>
+            <button class="btn secondary" id="seedBtn">📥 Učitaj početni raspored (Trening 1–3)</button>
+          </div>
+
+          <button class="btn danger" id="logoutBtn2" style="margin-top:20px;">Odjava</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <button class="fab" id="addTrainingFab" style="display:none;">+</button>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-view="treninziView">
+      <span class="icon">📋</span>
+      Treninzi
+    </button>
+    <button class="nav-btn" data-view="profilView">
+      <span class="icon">👤</span>
+      Profil
+    </button>
+  </nav>
+</div>
+
+<!-- Modal: dodaj / uredi trening -->
+<div class="modal-overlay hidden" id="trainingModal">
+  <div class="modal-sheet">
+    <h3 id="trainingModalTitle">Novi trening</h3>
+    <label for="trainingName">Naziv treninga</label>
+    <input type="text" id="trainingName" placeholder="npr. Trening 4 – Ruke" />
+    <label for="trainingWarmup">Zagrijavanje</label>
+    <input type="text" id="trainingWarmup" placeholder="npr. Traka 10 min" />
+    <div class="field-row">
+      <button class="btn secondary" id="trainingModalCancel">Odustani</button>
+      <button class="btn" id="trainingModalSave">Spremi</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: dodaj vježbu (core ili main) -->
+<div class="modal-overlay hidden" id="exerciseModal">
+  <div class="modal-sheet">
+    <h3 id="exerciseModalTitle">Nova vježba</h3>
+    <label for="exName">Naziv vježbe</label>
+    <input type="text" id="exName" placeholder="npr. Čučanj" />
+
+    <div id="exMainFields">
+      <div class="field-row">
+        <div>
+          <label for="exWeight">Težina</label>
+          <input type="text" id="exWeight" placeholder="npr. 12.5/12.5/15 kg" />
+        </div>
+        <div>
+          <label for="exSetsReps">Serije × ponavljanja</label>
+          <input type="text" id="exSetsReps" placeholder="npr. 3×10-12" />
+        </div>
+      </div>
+    </div>
+
+    <div id="exCoreFields" style="display:none;">
+      <label for="exSets">Serije</label>
+      <input type="text" id="exSets" placeholder="npr. 3 serije" />
+    </div>
+
+    <div class="field-row">
+      <button class="btn secondary" id="exerciseModalCancel">Odustani</button>
+      <button class="btn" id="exerciseModalSave">Spremi</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
